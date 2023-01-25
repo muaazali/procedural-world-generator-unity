@@ -40,7 +40,7 @@ public class WorldGenerator : MonoBehaviour
                 float perlinValue = Mathf.PerlinNoise(xValue, yValue);
 
                 GameObject instantiatedObject;
-                if (perlinValue > 0.5f) {
+                if (perlinValue > 0.4f) {
                     instantiatedObject = Instantiate(grassCube, new Vector3(x, 0f, y), Quaternion.identity);
                 } else if (perlinValue > 0.2f) {
                     instantiatedObject = Instantiate(sandCube, new Vector3(x, 0f, y), Quaternion.identity);
