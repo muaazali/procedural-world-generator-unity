@@ -5,7 +5,6 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class WorldGenerator : MonoBehaviour
 {
-    public int worldHeight, worldWidth;
     public float noiseScale = 1f;
     public float maximumHeight = 10f;
 
@@ -19,46 +18,77 @@ public class WorldGenerator : MonoBehaviour
     public bool isNoiseSampleRandom = true;
     public float xOrg = 10f, yOrg = 10f;
 
-    private Texture2D perlinTexture;
+	[Header("Terrain")]
+	public Terrain terrain;
+	public TerrainData terrainData;
+
+	private Texture2D perlinTexture;
 
     private GameObject worldParent;
 
-    public void GenerateWorld() {
+	void Start()
+	{
+		terrainData = terrain.terrainData;
+	}
+
+	public void GenerateWorld()
+	{
         if (worldParent == null) {
             worldParent = new GameObject("World");
         }
-        DeleteExistingWorld();
-        if (isNoiseSampleRandom) {
+		DeleteExistingWorld();
+		if (isNoiseSampleRandom)
+		{
             xOrg = Random.Range(0, 8096);
             yOrg = Random.Range(0, 8096);
         }
-        perlinTexture = new Texture2D(worldHeight, worldWidth);
-        for (float x = 0.0f; x < perlinTexture.width; x++) {
-            for (float y = 0.0f; y < perlinTexture.height; y++) {
-                float xValue = xOrg + x / perlinTexture.width * noiseScale;
-                float yValue = yOrg + y / perlinTexture.height * noiseScale;
+		int heightmapResolution = terrainData.heightmapResolution;
+		int alphamapResolution = terrainData.alphamapResolution;
+		float[,] heights = terrainData.GetHeights(0, 0, heightmapResolution, heightmapResolution);
+		float[,,] alphas = terrainData.GetAlphamaps(0, 0, alphamapResolution, alphamapResolution);
+
+		perlinTexture = new Texture2D(heightmapResolution, heightmapResolution);
+		for (float x = 0.0f; x < heightmapResolution; x++)
+		{
+			for (float y = 0.0f; y < heightmapResolution; y++)
+			{
+				float xValue = xOrg + x / heightmapResolution * noiseScale;
+				float yValue = yOrg + y / heightmapResolution * noiseScale;
                 float perlinValue = Mathf.PerlinNoise(xValue, yValue);
 
-                GameObject instantiatedObject;
-                if (perlinValue > 0.4f) {
-                    instantiatedObject = Instantiate(grassCube, new Vector3(x, 0f, y), Quaternion.identity);
-                } else if (perlinValue > 0.2f) {
-                    instantiatedObject = Instantiate(sandCube, new Vector3(x, 0f, y), Quaternion.identity);
-                }
-                else instantiatedObject = Instantiate(waterCube, new Vector3(x, 0f, y), Quaternion.identity);
-                instantiatedObject.transform.parent = worldParent.transform;
-                instantiatedObject.transform.position += Vector3.up * (maximumHeight * perlinValue);
-            }
+				if (x < alphamapResolution && y < alphamapResolution)
+				{
+					if (perlinValue > 0.4f)
+					{
+						alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), 2] = 1f;
+					}
+					else if (perlinValue > 0.2f)
+					{
+						alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), 1] = 1f;
+					}
+					else alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), 0] = 1f;
+				}
+				heights[Mathf.FloorToInt(x), Mathf.FloorToInt(y)] = perlinValue * maximumHeight;
+			}
         }
-    }
+		terrainData.SetHeights(0, 0, heights);
+		terrainData.SetAlphamaps(0, 0, alphas);
+	}
 
     public void DeleteExistingWorld()
     {
-        int totalChildren = worldParent.transform.childCount;
-        Debug.Log(totalChildren);
-        for (int i = 0; i < totalChildren; i++)
-        {
-            DestroyImmediate(worldParent.transform.GetChild(0).gameObject);
-        }
-    }
+		int alphamapResolution = terrainData.alphamapResolution;
+		float[,,] alphas = terrainData.GetAlphamaps(0, 0, alphamapResolution, alphamapResolution);
+		for (int x = 0; x < alphamapResolution; x++)
+		{
+			for (int y = 0; y < alphamapResolution; y++)
+			{
+				for (int i = 0; i < terrainData.terrainLayers.Length; i++)
+				{
+					alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), i] = 0f;
+				}
+			}
+		}
+		terrainData.SetAlphamaps(0, 0, alphas);
+	}
 }
