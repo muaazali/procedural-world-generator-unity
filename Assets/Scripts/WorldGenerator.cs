@@ -7,6 +7,7 @@ public class WorldGenerator : MonoBehaviour
 {
     public float noiseScale = 1f;
     public float maximumHeight = 10f;
+	public AnimationCurve heightCurve;
 
     [Header("Land Cubes")]
     public GameObject sandCube;
@@ -58,17 +59,20 @@ public class WorldGenerator : MonoBehaviour
 
 				if (x < alphamapResolution && y < alphamapResolution)
 				{
-					if (perlinValue > 0.4f)
-					{
-						alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), 2] = 1f;
-					}
-					else if (perlinValue > 0.2f)
+					if (perlinValue > 0.7f)
 					{
 						alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), 1] = 1f;
 					}
-					else alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), 0] = 1f;
+					if (perlinValue < 0.75f && perlinValue > 0.3f)
+						alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), 2] = 1f;
+					if (perlinValue < 0.35f)
+					{
+						alphas[Mathf.FloorToInt(x), Mathf.FloorToInt(y), 0] = 1f;
+					}
+
+
 				}
-				heights[Mathf.FloorToInt(x), Mathf.FloorToInt(y)] = perlinValue * maximumHeight;
+				heights[Mathf.FloorToInt(x), Mathf.FloorToInt(y)] = maximumHeight * heightCurve.Evaluate(perlinValue);
 			}
         }
 		terrainData.SetHeights(0, 0, heights);
